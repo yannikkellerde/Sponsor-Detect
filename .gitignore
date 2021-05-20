@@ -1,2 +1,5 @@
 .vscode/
 data/sponsor_timestamps.csv
+data/
+*.egg-info
+__pycache__

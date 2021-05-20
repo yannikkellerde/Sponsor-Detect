@@ -20,7 +20,7 @@ for id in tqdm(vid_ids):
     proc_path = os.path.join("data/processed",id+".csv")
     if not os.path.isfile(p+".en.vtt"):
         try:
-            subprocess.call(["youtube-dl", "--skip-download", "--write-auto-sub", f"https://www.youtube.com/watch?v={id}","-o", p])
+            subprocess.call(["torsocks","-i", "youtube-dl", "--skip-download", "--write-auto-sub", f"https://www.youtube.com/watch?v={id}","-o", p])
         except:
             print(f"WARNING: youtube-dl failed {id}")
     vid_csv = sponsor_data[sponsor_data["videoID"]==id]
