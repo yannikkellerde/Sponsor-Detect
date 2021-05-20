@@ -1,5 +1,6 @@
 .vscode/
-data/sponsor_timestamps.csv
-data/
+data/*
 *.egg-info
 __pycache__
+
+!data/.gitkeep
