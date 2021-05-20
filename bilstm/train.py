@@ -20,21 +20,11 @@ model = BiLSTM_classifier(config.Model.embedding_dim,config.Model.hidden_dim,len
 optimizer = optim.Adam(model.parameters(),lr=config.Training.lr)
 loss_function = nn.NLLLoss()
 
-for epoch in trange(300):  # again, normally you would NOT do 300 epochs, it is toy data
+for epoch in trange(300):
     losses = []
     for x, y in tqdm(zip(X_train,y_train)):
-        # Step 1. Remember that Pytorch accumulates gradients.
-        # We need to clear them out before each instance
         model.zero_grad()
-
-        # Step 2. Get our inputs ready for the network, that is, turn them into
-        # Tensors of word indices.
-
-        # Step 3. Run our forward pass.
         fx = model(x)
-
-        # Step 4. Compute the loss, gradients, and update the parameters by
-        #  calling optimizer.step()
         loss = loss_function(fx, y)
         losses.append(loss.item())
         loss.backward()
