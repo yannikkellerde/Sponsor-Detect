@@ -2,5 +2,8 @@
 data/*
 *.egg-info
 __pycache__
+deprecated.py
+.vector_cache
 
-!data/.gitkeep
+!data/merge_csv_files.py
+!data/train_val_test_split.py

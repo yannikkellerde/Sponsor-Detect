@@ -1,10 +1,9 @@
 from ast import literal_eval
 import configparser
 from collections import namedtuple
-import pandas as pd
-import torch
-import random
-from typing import NamedTuple, Tuple
+from typing import NamedTuple
+from functools import reduce
+from torch import nn
 
 def multidict_to_namedtuple(dic:dict,name:str) -> NamedTuple:
     for key in dic:
@@ -24,26 +23,15 @@ def load_config(filename:str) -> NamedTuple:
                 pass
     return multidict_to_namedtuple(config_dict,"config")
 
-def get_ix_map(data:pd.DataFrame,column:str) -> dict:
-    singles = data[column].unique()
-    return dict(zip(singles,range(len(singles))))
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def prepare_data(data:pd.DataFrame,word_to_ix:dict,category_to_ix:dict) -> tuple:
-    inputs = []
-    labels = []
-    for vid_str in data["video"].unique():
-        sentence_df = data[data["video"]==vid_str]
-        inputs.append(torch.tensor([word_to_ix[x] for x in sentence_df["word"]]))
-        labels.append(torch.tensor([category_to_ix[x] for x in sentence_df["category"]]))
-    return inputs, labels
+def product(iterable):
+    return reduce(lambda x,y:x*y,iterable,1)
 
-def train_val_test_split(X:list,labels:list,val_percent:int,test_percent:int) -> tuple:
-    both = zip(X,labels)
-    random.shuffle(both)
-    new_X,new_labels = zip(*both)
-    test_start = round(len(new_labels)-(test_percent*len(new_labels))/100)
-    val_start = round(test_start-(val_percent*len(new_labels))/100)
-    train = (new_X[:val_start],new_labels[:val_start])
-    val = (new_X[val_start:test_start],new_labels[val_start:test_start])
-    test = (new_X[test_start:],new_labels[test_start:])
-    return train,val,test
+def lstm_weights_init(model):
+    for name, param in model.named_parameters():
+        if 'bias' in name:
+            nn.init.constant_(param, 0.0)
+        elif 'weight' in name:
+            nn.init.xavier_normal_(param)
