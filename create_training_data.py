@@ -3,6 +3,7 @@ import pandas as pd
 import os,sys
 import subprocess
 import time
+import random
 import re
 from datetime import datetime,timedelta
 from tqdm import tqdm
@@ -13,7 +14,8 @@ def parse_time_string(tstr):
     return delta.total_seconds()
 
 sponsor_data = pd.read_csv("data/sponsor_timestamps.csv")
-vid_ids = sponsor_data["videoID"].unique()
+vid_ids = list(sponsor_data["videoID"].unique())
+random.shuffle(vid_ids)
 
 for id in tqdm(vid_ids):
     p = f"data/transcripts/{id}"

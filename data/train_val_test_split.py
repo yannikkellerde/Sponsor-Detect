@@ -10,6 +10,14 @@ SOURCE = "all_processed.csv"
 TARG_FOLDER = "sponsor_nlp_data"
 GROUP_COL = "video"
 KEEP_COLS = ["word","category"]
+CATEGORY_MAP = {
+    "video":"video",
+    "sponsor":"sponsor",
+    "intro":"video",
+    "outro":"video",
+    "interaction":"interaction",
+    "selfpromo":"selfpromo"
+}
 
 shutil.rmtree(TARG_FOLDER)
 os.makedirs(TARG_FOLDER)
@@ -23,13 +31,15 @@ val_test_index = int(train_val_index+len(vids)*(VAL_PERCENT/100))
 train = df[df[GROUP_COL].isin(vids[:train_val_index])]
 val = df[df[GROUP_COL].isin(vids[train_val_index:val_test_index])]
 test = df[df[GROUP_COL].isin(vids[val_test_index:])]
+print(len(train),len(val),len(test),train_val_index,val_test_index, len(vids))
 
 combos = ((train,"train.tsv"),(val,"val.tsv"),(test,"test.tsv"))
 
-for data_df,fname in tqdm(combos):
+for data_df,fname in tqdm(combos,desc="sets"):
     vids = data_df[GROUP_COL].unique()
-    for vid in tqdm(vids):
+    for vid in tqdm(vids,desc="videos"):
         vid_df = data_df[data_df[GROUP_COL]==vid][KEEP_COLS]
+        vid_df["category"] = [CATEGORY_MAP[x] for x in vid_df["category"]]
         vid_df.to_csv(os.path.join(TARG_FOLDER,fname),mode="a",header=False,index=False,sep="\t")
         with open(os.path.join(TARG_FOLDER,fname),"a") as f:
             f.write("\n")

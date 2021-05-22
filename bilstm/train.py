@@ -1,25 +1,84 @@
-import torch.optim as optim
-import torch.nn as nn
-import torch
-import numpy as np
 from tqdm import trange,tqdm
-from bilstm.model import BiLSTM_classifier
-from bilstm.util import load_config,lstm_weights_init
-from bilstm.dataset import DataHandler
+from torchmetrics import Metric
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-if not torch.cuda.is_available():
-    print("WARNING: CUDA not avaliable")
+def evaluate(model, iterator, optimizer, criterion, metrics):
+    # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
 
-config = load_config("config.ini")
+    metric_total = {key:0 for key in metrics}
+    metric_total["Loss"] = 0
+    
+    model.eval()
+    
+    for batch in tqdm(iterator,desc="eval"):
+        
+        text = batch.text
+        labels = batch.category
+        
+        optimizer.zero_grad()
 
-data_handler = DataHandler(config.Data,device)
+        predictions = model(text)
+        
+        #predictions = [sent len, batch size, output dim]
+        #labels = [sent len, batch size]
+        
+        predictions = predictions.view(-1, predictions.shape[-1])
+        labels = labels.view(-1)
+        
+        #predictions = [sent len * batch size, output dim]
+        #labels = [sent len * batch size]
+        
+        loss = criterion(predictions, labels)
+        
+        for key in metrics:
+            metric_total[key] += metrics[key](predictions,labels).item()
+        
+        metric_total["Loss"] += loss.item()
 
-model = BiLSTM_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
-                          data_handler.vocab_size,data_handler.num_categories,
-                          data_handler.pad_idx)
-lstm_weights_init(model)
-optimizer = optim.Adam(model.parameters(),lr=config.Training.lr)
+    for key in metric_total:
+        metric_total[key] /= len(iterator)
+        
+    return metric_total
 
-weighting = data_handler.calc_category_weighting()
-loss_function = nn.CrossEntropyLoss(weight=weighting)
+def train(model, iterator, optimizer, criterion, metrics):
+    # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
+
+    metric_total = {key:0 for key in metrics}
+    metric_total["Loss"] = 0
+
+    model.train()
+    
+    for batch in tqdm(iterator,desc="train"):
+        
+        text = batch.text
+        orig_labels = batch.category
+        
+        optimizer.zero_grad()
+
+        predictions = model(text)
+        
+        #predictions = [sent len, batch size, output dim]
+        #labels = [sent len, batch size]
+        
+        predictions = predictions.view(-1, predictions.shape[-1])
+        labels = orig_labels.view(-1)
+        
+        #predictions = [sent len * batch size, output dim]
+        #labels = [sent len * batch size]
+
+        if predictions.shape[0] != labels.shape[0]:
+            print("\nShapes do not match",text.shape,orig_labels.shape,labels.shape,predictions.shape)
+        
+        loss = criterion(predictions, labels)
+        
+        loss.backward()
+        
+        optimizer.step()
+        
+        metric_total["Loss"] += loss.item()
+        for key in metrics:
+            metric_total[key] += metrics[key](predictions,labels).item()
+        
+    for key in metric_total:
+        metric_total[key] /= len(iterator)
+
+    return metric_total

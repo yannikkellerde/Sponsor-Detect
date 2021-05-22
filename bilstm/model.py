@@ -14,8 +14,11 @@ class BiLSTM_classifier(nn.Module):
 
         self.fc = nn.Linear(hidden_dim*2, num_classes)
 
+        self.softmax = nn.Softmax(dim=2)
+
     def forward(self, text_indices):
         embeds = self.word_embeddings(text_indices)
         lstm_out, _ = self.bilstm(embeds)
-        class_scores = self.fc(lstm_out)
+        class_space = self.fc(lstm_out)
+        class_scores = self.softmax(class_space)
         return class_scores

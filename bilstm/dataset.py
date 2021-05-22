@@ -7,14 +7,14 @@ from itertools import combinations
 HOME_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"..")
 
 class DataHandler():
-    def __init__(self,config,device,nrows=None):
+    def __init__(self,config,device):
         self.config = config
         self.device = device
         self.data_folder = os.path.join(HOME_PATH,self.config.data_folder)
 
         self.text_field = Field(lower=True)
         self.category_field = Field()
-        fields = (("TEXT",self.text_field),("CATEGORY",self.category_field))
+        fields = (("text",self.text_field),("category",self.category_field))
         self.train_data,self.val_data,self.test_data = SequenceTaggingDataset.splits(
             self.data_folder,train="train.tsv",validation="val.tsv",test="test.tsv",fields=fields)
         
@@ -22,11 +22,12 @@ class DataHandler():
         self.text_field.build_vocab(self.train_data, vectors="glove.6B.100d", unk_init=torch.Tensor.normal_)
         self.category_field.build_vocab(self.train_data)
         self.pad_idx = self.text_field.vocab.stoi[self.text_field.pad_token]
+        self.category_pad_idx = self.category_field.vocab.stoi[self.category_field.pad_token]
 
         # Build iterators that handle the batch size and batch examples of similar length together
-        self.train_iterator, self.valid_iterator, self.test_iterator = BucketIterator.splits(
+        self.train_iterator, self.val_iterator, self.test_iterator = BucketIterator.splits(
             (self.train_data, self.val_data, self.test_data),
-            batch_size = self.config.batch_size, device = device)
+            batch_size = self.config.batch_size, device = self.device)
 
     @property
     def num_categories(self):
@@ -42,9 +43,11 @@ class DataHandler():
         return {key:self.category_field.vocab.freqs[key]/total_examples for key in self.category_field.vocab.freqs}
 
     def calc_category_weighting(self) -> torch.Tensor:
+        """Computes optimal weighting so that the prediction of each category will be equally important
+        """
         weighting = torch.zeros(self.num_categories)
         denominator = sum(product(x) for x in combinations(self.category_appearance.values(),len(self.category_appearance)-1))
         for key in self.category_appearance:
             weighting[self.category_field.vocab.stoi[key]] = product(
                 self.category_appearance[inkey] for inkey in self.category_appearance if inkey!=key) / denominator
-        return weighting
+        return weighting.to(self.device)
