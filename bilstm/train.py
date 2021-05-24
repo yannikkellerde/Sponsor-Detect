@@ -1,11 +1,11 @@
 from tqdm import trange,tqdm
 from torchmetrics import Metric
+import torch
 
 def evaluate(model, iterator, optimizer, criterion, metrics):
     # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
 
-    metric_total = {key:0 for key in metrics}
-    metric_total["Loss"] = 0
+    total_loss = torch.tensor([0.0])
     
     model.eval()
     
@@ -30,20 +30,22 @@ def evaluate(model, iterator, optimizer, criterion, metrics):
         loss = criterion(predictions, labels)
         
         for key in metrics:
-            metric_total[key] += metrics[key](predictions,labels).item()
+            metrics[key](predictions,labels)
         
-        metric_total["Loss"] += loss.item()
+        total_loss += loss.cpu()
 
-    for key in metric_total:
-        metric_total[key] /= len(iterator)
-        
+    metric_total = {}
+    for key in metrics:
+        metric_total[key] = metrics[key].compute()
+        metrics[key].reset()
+    metric_total["Loss"] = total_loss/len(iterator)
+
     return metric_total
 
 def train(model, iterator, optimizer, criterion, metrics):
     # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
 
-    metric_total = {key:0 for key in metrics}
-    metric_total["Loss"] = 0
+    total_loss = torch.tensor([0.0])
 
     model.train()
     
@@ -67,6 +69,7 @@ def train(model, iterator, optimizer, criterion, metrics):
 
         if predictions.shape[0] != labels.shape[0]:
             print("\nShapes do not match",text.shape,orig_labels.shape,labels.shape,predictions.shape)
+            print(text[:20,0],text[-2:,0],orig_labels[:2,0],orig_labels[-2:,0])
         
         loss = criterion(predictions, labels)
         
@@ -74,11 +77,15 @@ def train(model, iterator, optimizer, criterion, metrics):
         
         optimizer.step()
         
-        metric_total["Loss"] += loss.item()
         for key in metrics:
-            metric_total[key] += metrics[key](predictions,labels).item()
+            metrics[key](predictions,labels)
         
-    for key in metric_total:
-        metric_total[key] /= len(iterator)
+        total_loss += loss.cpu()
+
+    metric_total = {}
+    for key in metrics:
+        metric_total[key] = metrics[key].compute()
+        metrics[key].reset()
+    metric_total["Loss"] = total_loss/len(iterator)
 
     return metric_total

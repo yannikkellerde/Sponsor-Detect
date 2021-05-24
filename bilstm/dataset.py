@@ -4,16 +4,16 @@ import torch
 import os
 from bilstm.util import product
 from itertools import combinations
-HOME_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"..")
 
 class DataHandler():
-    def __init__(self,config,device):
+    def __init__(self,config,device,home_path):
         self.config = config
         self.device = device
-        self.data_folder = os.path.join(HOME_PATH,self.config.data_folder)
+        self.home_path = home_path
+        self.data_folder = os.path.join(home_path,self.config.data_folder)
 
         self.text_field = Field(lower=True)
-        self.category_field = Field()
+        self.category_field = Field(unk_token=None)
         fields = (("text",self.text_field),("category",self.category_field))
         self.train_data,self.val_data,self.test_data = SequenceTaggingDataset.splits(
             self.data_folder,train="train.tsv",validation="val.tsv",test="test.tsv",fields=fields)
@@ -28,6 +28,7 @@ class DataHandler():
         self.train_iterator, self.val_iterator, self.test_iterator = BucketIterator.splits(
             (self.train_data, self.val_data, self.test_data),
             batch_size = self.config.batch_size, device = self.device)
+            
 
     @property
     def num_categories(self):

@@ -17,6 +17,8 @@ sponsor_data = pd.read_csv("data/sponsor_timestamps.csv")
 vid_ids = list(sponsor_data["videoID"].unique())
 random.shuffle(vid_ids)
 
+vid_ids = [x.split(".")[0] for x in os.listdir("data/transcripts")]
+
 for id in tqdm(vid_ids):
     p = f"data/transcripts/{id}"
     proc_path = os.path.join("data/processed",id+".csv")
@@ -28,7 +30,7 @@ for id in tqdm(vid_ids):
     vid_csv = sponsor_data[sponsor_data["videoID"]==id]
     drop = []
     for i,row in vid_csv.iterrows():  # Drop all bad sponsor timestamps
-        if row["votes"] <= 0:
+        if row["votes"] < 0:
             drop.append(i)
             continue
         for _,row2 in vid_csv.iterrows():
