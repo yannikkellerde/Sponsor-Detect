@@ -11,17 +11,6 @@ SOURCE = "all_processed.csv"
 TARG_FOLDER = "sponsor_nlp_data"
 GROUP_COL = "video"
 KEEP_COLS = ["word","category"]
-UNKNOWN_TOKEN = "unknownunknown"
-CATEGORY_MAP = {
-    "video":"video",
-    "sponsor":"sponsor",
-    "intro":"video",
-    "outro":"video",
-    "interaction":"interaction",
-    "selfpromo":"selfpromo",
-    "music_offtopic":"video",
-    "offtopic":"video"
-}
 
 shutil.rmtree(TARG_FOLDER)
 os.makedirs(TARG_FOLDER)
@@ -42,10 +31,6 @@ for data_df,fname in tqdm(combos,desc="sets"):
     vids = data_df[GROUP_COL].unique()
     for vid in tqdm(vids,desc="videos"):
         vid_df = data_df[data_df[GROUP_COL]==vid][KEEP_COLS]
-        for i,row in vid_df.iterrows():
-            if type(row["word"]) != str and np.isnan(row["word"]):
-                vid_df.at[i,'word'] = UNKNOWN_TOKEN
-        vid_df["category"] = [CATEGORY_MAP[x] for x in vid_df["category"]]
         vid_df.to_csv(os.path.join(TARG_FOLDER,fname),mode="a",header=False,index=False,sep="\t")
         with open(os.path.join(TARG_FOLDER,fname),"a") as f:
             f.write("\n")

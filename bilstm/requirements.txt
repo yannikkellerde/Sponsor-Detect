@@ -1,0 +1,5 @@
+config-to-object==1.0.1
+torchmetrics==0.3.2
+torchtext==0.9.1
+torchvision==0.9.1
+tqdm==4.60.0

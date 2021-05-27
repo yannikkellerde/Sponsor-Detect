@@ -4,12 +4,14 @@ import torch
 import os
 from bilstm.util import product
 from itertools import combinations
+import pickle
 
 class DataHandler():
     def __init__(self,config,device,home_path):
         self.config = config
         self.device = device
         self.home_path = home_path
+        self.vocab_path = os.path.join(self.home_path,self.config.model_vocab_store)
         self.data_folder = os.path.join(home_path,self.config.data_folder)
 
         self.text_field = Field(lower=True)
@@ -43,6 +45,13 @@ class DataHandler():
         total_examples = sum(self.category_field.vocab.freqs.values())
         return {key:self.category_field.vocab.freqs[key]/total_examples for key in self.category_field.vocab.freqs}
 
+    def store_vocabs(self,fname):
+        with open(os.path.join(self.vocab_path,fname),"wb") as f:
+            pickle.dump({
+                "text":self.text_field.vocab,
+                "category":self.category_field.vocab
+            },f)
+
     def calc_category_weighting(self) -> torch.Tensor:
         """Computes optimal weighting so that the prediction of each category will be equally important
         """
@@ -52,3 +61,8 @@ class DataHandler():
             weighting[self.category_field.vocab.stoi[key]] = product(
                 self.category_appearance[inkey] for inkey in self.category_appearance if inkey!=key) / denominator
         return weighting.to(self.device)
+
+def load_vocabs(fname):
+    with open(fname,"rb") as f:
+        dic = pickle.load(f)
+    return dic["text"],dic["category"]

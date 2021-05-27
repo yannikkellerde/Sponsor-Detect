@@ -5,11 +5,13 @@ import numpy as np
 from tqdm import trange,tqdm
 import time
 import os
+from config_to_object import load_config
 from bilstm.model import BiLSTM_classifier
-from bilstm.util import load_config,lstm_weights_init, load_model, save_model,format_metrics
+from bilstm.util import lstm_weights_init, load_model, save_model,format_metrics
 from bilstm.dataset import DataHandler
 from bilstm.train import train,evaluate
 from torchmetrics import F1,Accuracy
+from bilstm.config_types import Config
 
 HOME_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"..")
 
@@ -17,9 +19,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if not torch.cuda.is_available():
     print("WARNING: CUDA not avaliable")
 
-config = load_config("config.ini")
+config:Config = load_config("config.ini")
 
 data_handler = DataHandler(config.Data,device,HOME_PATH)
+data_handler.store_vocabs(os.path.join(HOME_PATH,config.Data.model_vocab_store,config.Data.model_name+".pkl"))
 
 model = BiLSTM_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
                           config.Model.num_layers,data_handler.vocab_size,
@@ -45,7 +48,7 @@ for epoch in trange(1,config.Training.number_epochs+1,desc="Epochs"):
     train_metrics = train(model,data_handler.train_iterator,optimizer,loss_function,metrics)
     eval_metrics = evaluate(model,data_handler.val_iterator,optimizer,loss_function,metrics)
 
-    save_model(model,optimizer,epoch,train_metrics,eval_metrics,os.path.join(HOME_PATH,config.Data.model_store_folder,"bilstm"))
+    save_model(model,optimizer,epoch,train_metrics,eval_metrics,os.path.join(HOME_PATH,config.Data.model_store_path),config.Data.model_name)
 
     elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time))
     print(f"\nEpoch {epoch}, epoch time: {elapsed}")
