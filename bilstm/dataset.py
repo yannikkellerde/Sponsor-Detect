@@ -1,10 +1,13 @@
 from torchtext.legacy.data import BucketIterator, Field
 from torchtext.legacy.datasets import SequenceTaggingDataset
+from torchtext.vocab import Vocab
+
 import torch
 import os
 from bilstm.util import product
 from itertools import combinations
 import pickle
+from typing import Tuple
 
 class DataHandler():
     def __init__(self,config,device,home_path):
@@ -62,7 +65,7 @@ class DataHandler():
                 self.category_appearance[inkey] for inkey in self.category_appearance if inkey!=key) / denominator
         return weighting.to(self.device)
 
-def load_vocabs(fname):
+def load_vocabs(fname) -> Tuple[Vocab]:
     with open(fname,"rb") as f:
         dic = pickle.load(f)
     return dic["text"],dic["category"]

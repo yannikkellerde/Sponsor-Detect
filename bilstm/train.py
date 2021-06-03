@@ -1,6 +1,7 @@
 from tqdm import trange,tqdm
 from torchmetrics import Metric
 import torch
+from bilstm.util import pred_to_category
 
 def evaluate(model, iterator, optimizer, criterion, metrics):
     # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
@@ -8,6 +9,7 @@ def evaluate(model, iterator, optimizer, criterion, metrics):
     total_loss = torch.tensor([0.0])
     
     model.eval()
+
     
     for batch in tqdm(iterator,desc="eval"):
         
@@ -89,3 +91,17 @@ def train(model, iterator, optimizer, criterion, metrics):
     metric_total["Loss"] = total_loss/len(iterator)
 
     return metric_total
+
+def predict(model,vocab,text,device):
+    in_tensor = torch.tensor([vocab.stoi[word] if word in vocab.stoi else vocab.stoi["<unk>"] for word in text],device=device)
+    in_tensor = in_tensor.view(-1,1)
+    pred = model(in_tensor)
+    return pred[:,0]
+
+def get_prediction_combo(model,text_vocab,category_vocab,example,device):
+    preds = predict(model,text_vocab,example.text,device)
+    categories = pred_to_category(preds,category_vocab)
+    correct = [a==b for a,b in zip(categories,example.category)]
+    out_list = list(zip(example.text,categories))
+    print("Accuracy",sum(correct)/len(correct))
+    return out_list

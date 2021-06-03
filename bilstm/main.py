@@ -5,13 +5,22 @@ import numpy as np
 from tqdm import trange,tqdm
 import time
 import os
+import pandas as pd
+from shutil import copyfile
+import argparse
+
 from config_to_object import load_config
 from bilstm.model import BiLSTM_classifier
-from bilstm.util import lstm_weights_init, load_model, save_model,format_metrics
+from bilstm.util import lstm_weights_init, load_model, save_model,format_metrics,pred_to_category
 from bilstm.dataset import DataHandler
-from bilstm.train import train,evaluate
+from bilstm.train import train,evaluate,get_prediction_combo
 from torchmetrics import F1,Accuracy
 from bilstm.config_types import Config
+
+parser = argparse.ArgumentParser(description='Inference options')
+parser.add_argument("--model_name","-m",type=str,default=None,help="Which torch model to load")
+args = parser.parse_args()
+
 
 HOME_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"..")
 
@@ -20,6 +29,7 @@ if not torch.cuda.is_available():
     print("WARNING: CUDA not avaliable")
 
 config:Config = load_config("config.ini")
+copyfile("config.ini",os.path.join(HOME_PATH,config.Data.config_store,config.Data.model_name+".ini"))
 
 data_handler = DataHandler(config.Data,device,HOME_PATH)
 data_handler.store_vocabs(os.path.join(HOME_PATH,config.Data.model_vocab_store,config.Data.model_name+".pkl"))
@@ -30,6 +40,10 @@ model = BiLSTM_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
 lstm_weights_init(model)
 model = model.to(device)
 optimizer = optim.Adam(model.parameters(),lr=config.Training.lr)
+
+if args.model_name is not None:
+    metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,args.model_name),model,optimizer=optimizer)
+    print(metadata)
 
 weighting = data_handler.calc_category_weighting()
 loss_function = nn.CrossEntropyLoss(weight=weighting)
@@ -43,6 +57,8 @@ eval_metrics = evaluate(model,data_handler.val_iterator,optimizer,loss_function,
 print("Epoch 0")
 print(", ".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,data_handler).items()))
 
+training_progress = []
+
 for epoch in trange(1,config.Training.number_epochs+1,desc="Epochs"):
     start_time = time.time()
     train_metrics = train(model,data_handler.train_iterator,optimizer,loss_function,metrics)
@@ -51,6 +67,28 @@ for epoch in trange(1,config.Training.number_epochs+1,desc="Epochs"):
     save_model(model,optimizer,epoch,train_metrics,eval_metrics,os.path.join(HOME_PATH,config.Data.model_store_path),config.Data.model_name)
 
     elapsed = time.strftime("%H:%M:%S", time.gmtime(time.time()-start_time))
+
+    progress = {
+        "Epoch":epoch,
+        "elapsed":elapsed,
+        "train_loss":train_metrics["Loss"].item(),
+        "train_accuracy":train_metrics["Accuracy"].item(),
+        "valid_loss":eval_metrics["Loss"].item(),
+        "valid_accuracy":eval_metrics["Accuracy"].item(),
+    }
+    for i,value in enumerate(train_metrics["F1"]):
+        progress[f"train_F1_{data_handler.text_field.vocab.itos[i]}"] = value.item()
+    for i,value in enumerate(eval_metrics["F1"]):
+        progress[f"valid_F1_{data_handler.text_field.vocab.itos[i]}"] = value.item()
+    training_progress.append(progress)
+    pd.DataFrame(training_progress).to_csv(os.path.join(HOME_PATH,config.Data.progress_store,config.Data.model_name+".csv"))
+
+    prediction = get_prediction_combo(model,data_handler.text_field.vocab,data_handler.category_field.vocab,data_handler.test_data.examples[epoch],device)
+
+    with open("predictions.txt","a") as f:
+        f.write("\n\n\n")
+        f.write(str(prediction))
+
     print(f"\nEpoch {epoch}, epoch time: {elapsed}")
     print(", ".join(f"Training {key}: {value}" for key,value in format_metrics(train_metrics,data_handler).items()))
     print(", ".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,data_handler).items()))

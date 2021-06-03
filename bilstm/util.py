@@ -9,6 +9,9 @@ import torch
 import numpy as np
 from datetime import datetime
 
+def pred_to_category(preds,category_vocab):
+    return [category_vocab.itos[torch.argmax(x).item()] for x in preds]
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 

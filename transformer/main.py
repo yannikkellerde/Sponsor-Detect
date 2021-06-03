@@ -68,4 +68,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config = yaml.load(open(args.config), Loader=yaml.FullLoader)
     main(config)
-
