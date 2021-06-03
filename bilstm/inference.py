@@ -9,6 +9,7 @@ from torchtext.legacy.datasets import SequenceTaggingDataset
 from torchtext.legacy.data import Field
 from collections import Counter
 
+from bilstm.inference_to_html import to_html
 from bilstm.config_types import Config
 from bilstm.model import BiLSTM_classifier
 from bilstm.util import load_model
@@ -48,8 +49,12 @@ model = model.to(DEVICE)
 metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,f"{args.model_name}_{args.model_num}.tar"),model)
 model.eval()
 
-for i in range(10):
+for i in range(1):
     annotated = get_prediction_combo(model,text_dic,category_dic,test_data.examples[i],device=DEVICE)
+
+    text,preds = zip(*annotated)
+    to_html(text,test_data.examples[i].category,preds,"test.html")
+
     with open("prediction_examples.txt","a") as f:
         f.write("\n\n\n")
         f.write(str(annotated))

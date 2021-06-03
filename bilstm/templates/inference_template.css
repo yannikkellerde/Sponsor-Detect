@@ -1,0 +1,25 @@
+body{
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+.container{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    padding:10px;
+    align-items: center;
+    justify-content: center;
+}
+.container_elem{
+    position: relative;
+    padding:3px;
+}
+.red{
+    color:red;
+}
+.green{
+    color:green;
+}

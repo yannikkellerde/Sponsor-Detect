@@ -21,6 +21,7 @@ class Data(NamedTuple):
     model_vocab_store:str
     config_store:str
     progress_store:str
+    template_location:str
 
 class Config(NamedTuple):
     Model:Model
