@@ -17,7 +17,7 @@ sponsor_data = pd.read_csv("data/sponsor_timestamps.csv")
 vid_ids = list(sponsor_data["videoID"].unique())
 random.shuffle(vid_ids)
 
-vid_ids = [x.split(".")[0] for x in os.listdir("data/transcripts")]
+# vid_ids = [x.split(".")[0] for x in os.listdir("data/transcripts")]
 
 for id in tqdm(vid_ids):
     p = f"data/transcripts/{id}"

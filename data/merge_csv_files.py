@@ -9,7 +9,7 @@ CATEGORY_MAP = {
     "sponsor":"sponsor",
     "intro":"video",
     "outro":"video",
-    "interaction":"interaction",
+    "interaction":"video",
     "selfpromo":"video",
     "music_offtopic":"video",
     "offtopic":"video"
