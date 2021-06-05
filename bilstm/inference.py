@@ -9,7 +9,7 @@ from torchtext.legacy.datasets import SequenceTaggingDataset
 from torchtext.legacy.data import Field
 from collections import Counter
 
-from bilstm.inference_to_html import to_html
+from frontend.inference_to_html import to_html
 from bilstm.config_types import Config
 from bilstm.model import BiLSTM_classifier
 from bilstm.util import load_model
@@ -25,8 +25,11 @@ parser.add_argument("--input","-i",type=str,help="location of input file")
 parser.add_argument("--output","-o",type=str,help="output file location")
 args = parser.parse_args()
 
+if args.model_name is None or args.model_num is None or args.input is None:
+    print("You need to provide a model name as well as a model number and an input file")
+
 config:Config = load_config("config.ini")
-config:Config = load_config(os.path.join(HOME_PATH,config.Data.config_store,args.model_name+".ini"))
+#config:Config = load_config(os.path.join(HOME_PATH,config.Data.config_store,args.model_name+".ini"))
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -49,11 +52,12 @@ model = model.to(DEVICE)
 metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,f"{args.model_name}_{args.model_num}.tar"),model)
 model.eval()
 
-for i in range(1):
+for i in range(7,8):
     annotated = get_prediction_combo(model,text_dic,category_dic,test_data.examples[i],device=DEVICE)
 
     text,preds = zip(*annotated)
-    to_html(text,test_data.examples[i].category,preds,"test.html")
+    to_html(text,test_data.examples[i].category,preds,os.path.abspath(os.path.join(HOME_PATH,config.Frontend.results_location,"test_6.html")),
+            os.path.join(HOME_PATH,config.Frontend.template_location),os.path.join(HOME_PATH,config.Frontend.css_location))
 
     with open("prediction_examples.txt","a") as f:
         f.write("\n\n\n")

@@ -21,9 +21,14 @@ class Data(NamedTuple):
     model_vocab_store:str
     config_store:str
     progress_store:str
+
+class Frontend(NamedTuple):
     template_location:str
+    css_location:str
+    results_location:str
 
 class Config(NamedTuple):
     Model:Model
     Training:Training
     Data:Data
+    Frontend:Frontend

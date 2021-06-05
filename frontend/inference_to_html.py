@@ -5,8 +5,8 @@ import os,sys
 HOME_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),"..")
 config:Config = load_config("config.ini")
 
-def to_html(text,labels,predictions,out_file):
-    with open(os.path.join(HOME_PATH,config.Data.template_location),"r") as f:
+def to_html(text,labels,predictions,out_file,template_location,css_location):
+    with open(template_location,"r") as f:
         template = f.read()
 
     inside = ""
@@ -21,7 +21,7 @@ def to_html(text,labels,predictions,out_file):
         inside+=f'<div class="container_elem {color_class}">{t}</div>\n'
         inside+='</div>\n'
     
-    template = template.replace("{CONTENT}",inside)
+    template = template.replace("{CONTENT}",inside).replace("{CSS_PATH}",os.path.relpath(css_location,os.path.dirname(out_file)))
 
     with open(out_file,"w") as f:
         f.write(template)
