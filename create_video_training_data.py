@@ -9,8 +9,11 @@ import math
 import torch
 from PIL import Image
 from torchvision import models, transforms, datasets
+from util import save_obj
 
 def embedding_to_annotate(save_dir, embeddings, vid_csv):
+    if len(embeddings) > 1800: # not videos longer then 30 min
+        return
     start_times = vid_csv["startTime"].tolist()
     end_times = vid_csv["endTime"].tolist()
     cats = vid_csv["category"].tolist()
@@ -20,8 +23,7 @@ def embedding_to_annotate(save_dir, embeddings, vid_csv):
             if i >= start_time and i <= end_time:
                 category[i] = cat
     dic = {'embedding':embeddings, 'category':category}
-    df = pd.DataFrame(data=dic)
-    df.to_csv(save_dir)
+    save_obj(dic, save_dir+".pkl")
 
 
 def do_frame_embedding(model, frame_dir):
@@ -69,7 +71,10 @@ vid_ids = list(sponsor_data["videoID"].unique())
 random.shuffle(vid_ids)
 for id in tqdm(vid_ids):
     p = f"data/videos/{id}.mp4"
-    if not os.path.isfile(p):
+    video_df = sponsor_data[sponsor_data["videoID"] == id]
+    cats = video_df["category"].tolist()
+    print(cats)
+    if not(os.path.isfile(p)) and ("sponsor" in cats):
         try:
             subprocess.call(["youtube-dl", f"https://www.youtube.com/watch?v={id}", "-f",'bestvideo[height<=240]', "-o", p])
             # Threshold need more attention
@@ -98,4 +103,4 @@ for id in tqdm(vid_ids):
                         break
         vid_csv = vid_csv.drop(index=drop)
         if embedding:
-            embedding_to_annotate(f"data/embeddings/{id}.csv", embedding, vid_csv)
+            embedding_to_annotate(f"data/embeddings/{id}", embedding, vid_csv)
