@@ -11,7 +11,7 @@ from collections import Counter
 
 from frontend.inference_to_html import to_html
 from bilstm.config_types import Config
-from bilstm.model import BiLSTM_classifier
+from bilstm.model import Bidirectional_classifier
 from bilstm.util import load_model
 from bilstm.dataset import load_vocabs
 from bilstm.train import get_prediction_combo
@@ -43,13 +43,14 @@ test_data = SequenceTaggingDataset(args.input,fields)
 text_field.vocab = text_dic
 category_field.vocab = category_dic
 
-model = BiLSTM_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
+model = Bidirectional_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
                           config.Model.num_layers,len(text_dic),
-                          len(category_dic),text_dic.stoi["<pad>"])
+                          len(category_dic),text_dic.stoi["<pad>"],
+                          gru=config.Model.gru)
 
 model = model.to(DEVICE)
 
-metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,f"{args.model_name}_{args.model_num}.tar"),model)
+metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,args.model_name,f"{args.model_name}_{args.model_num}.tar"),model)
 model.eval()
 
 for i in range(7,8):

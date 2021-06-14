@@ -28,19 +28,21 @@ def lstm_weights_init(model):
 def sentence_from_indices(indices,vocab):
     return [vocab.itos[i] for i in indices]
 
-def save_model(model:nn.Module,optimizer:torch.optim.Optimizer,epoch:int,train_metrics:dict,eval_metrics:dict,model_path:str,model_name:str):
+def save_model(model:nn.Module,optimizer:torch.optim.Optimizer,epoch:int,train_metrics:dict,eval_metrics:dict,weighting:torch.Tensor,model_path:str,model_name:str):
     timestamp = datetime.now().strftime("%d-%b-%Y_%H:%M:%S")
     save_dict = {
         "epoch":epoch,
         "timestamp":timestamp,
         "model_state_dict":model.state_dict(),
         "optimizer_state_dict":optimizer.state_dict(),
+        "weighting":weighting
     }
     for key in train_metrics:
         save_dict["train_"+key] = train_metrics[key]
     for key in eval_metrics:
         save_dict["eval_"+key] = eval_metrics[key]
-    torch.save(save_dict,os.path.join(model_path,f"{model_name}_{epoch}.tar"))
+    os.makedirs(os.path.join(model_path,model_name),exist_ok=True)
+    torch.save(save_dict,os.path.join(model_path,model_name,f"{model_name}_{epoch}.tar"))
 
 def load_model(filepath:str,model:nn.Module,optimizer:torch.optim.Optimizer=None):
     checkpoint = torch.load(filepath)
@@ -51,9 +53,9 @@ def load_model(filepath:str,model:nn.Module,optimizer:torch.optim.Optimizer=None
     del checkpoint['optimizer_state_dict']
     return checkpoint
 
-def format_metrics(metrics,data_handler):
+def format_metrics(metrics,category_field):
     out_metrics = {}
-    out_metrics["F1"] = {data_handler.category_field.vocab.itos[i]:(value.item() if np.isnan(value.item()) else round(value.item(),4)) for i,value in enumerate(metrics["F1"])}
+    out_metrics["F1"] = {category_field.vocab.itos[i]:(value.item() if np.isnan(value.item()) else round(value.item(),4)) for i,value in enumerate(metrics["F1"])}
     del out_metrics["F1"]["<pad>"]
     for key,value in metrics.items():
         if key!="F1":

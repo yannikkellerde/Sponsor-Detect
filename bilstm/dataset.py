@@ -4,6 +4,7 @@ from torchtext.vocab import Vocab
 
 import torch
 import os
+from bilstm.config_types import Data
 from bilstm.util import product
 from itertools import combinations
 import pickle
@@ -11,7 +12,7 @@ from typing import Tuple
 
 class DataHandler():
     def __init__(self,config,device,home_path):
-        self.config = config
+        self.config:Data = config
         self.device = device
         self.home_path = home_path
         self.vocab_path = os.path.join(self.home_path,self.config.model_vocab_store)

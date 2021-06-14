@@ -5,6 +5,7 @@
 from typing import NamedTuple, List, Tuple
 
 class Model(NamedTuple):
+    gru:bool
     embedding_dim:int
     hidden_dim:int
     num_layers:int

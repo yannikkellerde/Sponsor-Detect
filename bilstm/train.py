@@ -3,47 +3,6 @@ from torchmetrics import Metric
 import torch
 from bilstm.util import pred_to_category
 
-def evaluate(model, iterator, optimizer, criterion, metrics):
-    # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
-
-    total_loss = torch.tensor([0.0])
-    
-    model.eval()
-
-    
-    for batch in tqdm(iterator,desc="eval"):
-        
-        text = batch.text
-        labels = batch.category
-        
-        optimizer.zero_grad()
-
-        predictions = model(text)
-        
-        #predictions = [sent len, batch size, output dim]
-        #labels = [sent len, batch size]
-        
-        predictions = predictions.view(-1, predictions.shape[-1])
-        labels = labels.view(-1)
-        
-        #predictions = [sent len * batch size, output dim]
-        #labels = [sent len * batch size]
-        
-        loss = criterion(predictions, labels)
-        
-        for key in metrics:
-            metrics[key](predictions,labels)
-        
-        total_loss += loss.cpu()
-
-    metric_total = {}
-    for key in metrics:
-        metric_total[key] = metrics[key].compute()
-        metrics[key].reset()
-    metric_total["Loss"] = total_loss/len(iterator)
-
-    return metric_total
-
 def train(model, iterator, optimizer, criterion, metrics):
     # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
 

@@ -5,6 +5,8 @@ import shutil
 import numpy as np
 from tqdm import tqdm
 
+# 6984/12557
+
 VAL_PERCENT = 20
 TEST_PERCENT = 10
 SOURCE = "all_processed.csv"
@@ -12,7 +14,8 @@ TARG_FOLDER = "sponsor_nlp_data"
 GROUP_COL = "video"
 KEEP_COLS = ["word","category"]
 
-shutil.rmtree(TARG_FOLDER)
+if os.path.exists(TARG_FOLDER):
+    shutil.rmtree(TARG_FOLDER)
 os.makedirs(TARG_FOLDER)
 df = pd.read_csv(SOURCE,index_col=0)
 vids = list(df[GROUP_COL].unique())
