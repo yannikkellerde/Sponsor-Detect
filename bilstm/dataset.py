@@ -3,6 +3,7 @@ from torchtext.legacy.datasets import SequenceTaggingDataset
 from torchtext.vocab import Vocab
 
 import torch
+from collections import Counter
 import os
 from bilstm.config_types import Data
 from bilstm.util import product
@@ -34,7 +35,8 @@ class DataHandler():
         self.train_iterator, self.val_iterator, self.test_iterator = BucketIterator.splits(
             (self.train_data, self.val_data, self.test_data),
             batch_size = self.config.batch_size, device = self.device)
-            
+
+        self.train_iterator.sort_within_batch=True
 
     @property
     def num_categories(self):

@@ -2,18 +2,20 @@ from tqdm import trange,tqdm
 from torchmetrics import Metric
 from torchtext.legacy.datasets import SequenceTaggingDataset
 from torchtext.legacy.data import Field,BucketIterator
-from torchmetrics import F1,Accuracy
+from torchmetrics import F1,Accuracy,Precision,Recall
 import torch
 import argparse
 import os,sys
+import numpy as np
+from collections import Counter
 
 from config_to_object import load_config
 from bilstm.config_types import Config
 from bilstm.util import pred_to_category,load_model, format_metrics
-from bilstm.dataset import load_vocabs
+from bilstm.dataset import load_vocabs,DataHandler
 from bilstm.model import Bidirectional_classifier
 
-def evaluate(model, iterator, criterion, metrics):
+def evaluate(model, iterator, criterion, metrics, max_iterations=np.inf):
     # SOURCE (MODIFIED): https://github.com/bentrevett/pytorch-pos-tagging/blob/master/1%20-%20BiLSTM%20for%20PoS%20Tagging.ipynb
 
     total_loss = torch.tensor([0.0])
@@ -21,7 +23,9 @@ def evaluate(model, iterator, criterion, metrics):
     model.eval()
 
     with torch.no_grad():    
-        for batch in tqdm(iterator,desc="eval"):
+        for i,batch in tqdm(enumerate(iterator),desc="eval"):
+            if i>=max_iterations:
+                break
             
             text = batch.text
             labels = batch.category
@@ -48,7 +52,7 @@ def evaluate(model, iterator, criterion, metrics):
     for key in metrics:
         metric_total[key] = metrics[key].compute()
         metrics[key].reset()
-    metric_total["Loss"] = total_loss/len(iterator)
+    metric_total["Loss"] = total_loss/min(len(iterator),max_iterations)
 
     return metric_total
 
@@ -72,12 +76,18 @@ if __name__ == "__main__":
 
     test_data = SequenceTaggingDataset(args.dataset,fields)
 
+    ##
+    #train_data = SequenceTaggingDataset("../data/sponsor_nlp_data/train.tsv",fields)
+    #text_field.build_vocab(train_data, vectors="glove.6B.100d", unk_init=torch.Tensor.normal_)
+    #category_field.build_vocab(train_data)
+    ##
+
     text_field.vocab = text_dic
     category_field.vocab = category_dic
 
     model = Bidirectional_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
-                                     config.Model.num_layers,len(text_dic),
-                                     len(category_dic),text_dic.stoi["<pad>"],
+                                     config.Model.num_layers,len(text_field.vocab),
+                                     len(category_field.vocab),text_field.vocab.stoi["<pad>"],
                                      gru=config.Model.gru)
 
     model = model.to(DEVICE)
@@ -90,21 +100,23 @@ if __name__ == "__main__":
 
     test_iterator = BucketIterator(
             test_data,
-            batch_size = config.Data.batch_size, device = DEVICE)
+            batch_size = config.Data.batch_size, device = DEVICE,train=False)
 
     metrics = {
         "Accuracy":Accuracy(ignore_index=category_field.vocab.stoi[category_field.pad_token]).to(DEVICE),
-        "F1":F1(ignore_index=category_field.vocab.stoi[category_field.pad_token],num_classes=len(category_field.vocab),average=None).to(DEVICE)
+        "F1":F1(ignore_index=category_field.vocab.stoi[category_field.pad_token],num_classes=len(category_field.vocab),average=None).to(DEVICE),
+        "Precision":Precision(ignore_index=category_field.vocab.stoi[category_field.pad_token],num_classes=len(category_field.vocab),average=None).to(DEVICE),
+        "Recall":Recall(ignore_index=category_field.vocab.stoi[category_field.pad_token],num_classes=len(category_field.vocab),average=None).to(DEVICE)
     }
 
     if "weighting" in metadata:
         weighting = metadata["weighting"]
     else:
-        #weighting = torch.Tensor([0.0000, 0.0527, 0.9473]).to(DEVICE)
-        weighting = torch.Tensor([0.0000, 0.0027, 0.0343, 0.9630]).to(DEVICE)
+        weighting = torch.Tensor([0.0000, 0.0527, 0.9473]).to(DEVICE)
+        #weighting = torch.Tensor([0.0000, 0.0027, 0.0343, 0.9630]).to(DEVICE)
 
     criterion = torch.nn.CrossEntropyLoss(weight=weighting)
 
     eval_metrics = evaluate(model,test_iterator,criterion,metrics)
 
-    print(", ".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,category_field).items()))
+    print("\n".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,category_field).items()))

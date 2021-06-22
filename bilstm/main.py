@@ -11,11 +11,11 @@ import argparse
 
 from config_to_object import load_config
 from bilstm.model import Bidirectional_classifier
-from bilstm.util import lstm_weights_init, load_model, save_model,format_metrics,pred_to_category
+from bilstm.util import lstm_weights_init, load_model, save_model,format_metrics,pred_to_category,forget_gate_trick
 from bilstm.dataset import DataHandler
 from bilstm.train import train,get_prediction_combo
 from bilstm.evaluate import evaluate
-from torchmetrics import F1,Accuracy
+from torchmetrics import F1,Accuracy,Precision,Recall
 from bilstm.config_types import Config
 
 parser = argparse.ArgumentParser(description='Model loading stuff')
@@ -38,22 +38,35 @@ data_handler.store_vocabs(os.path.join(HOME_PATH,config.Data.model_vocab_store,c
 model = Bidirectional_classifier(config.Model.embedding_dim,config.Model.hidden_dim,
                                  config.Model.num_layers,data_handler.vocab_size,
                                  data_handler.num_categories,data_handler.pad_idx,
-                                 gru=config.Model.gru)
+                                 gru=config.Model.gru,dropout=config.Training.dropout)
+
 lstm_weights_init(model)
+if config.Model.forget_gate_to_one:
+    if config.Model.gru:
+        raise ValueError("forget gate trick only works with lstm")
+    forget_gate_trick(model.recurent)
+
 model = model.to(device)
-optimizer = optim.Adam(model.parameters(),lr=config.Training.lr)
+if config.Training.weight_decay > 0:
+    optimizer = optim.AdamW(model.parameters(),lr=config.Training.lr,weight_decay=config.Training.weight_decay)
+else:
+    optimizer = optim.Adam(model.parameters(),lr=config.Training.lr)
 
 if args.model_name is not None:
     metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,args.model_name),model,optimizer=optimizer)
     print(metadata)
 
 weighting = data_handler.calc_category_weighting()
+weighting[1] += 0.1 #
+weighting[2] -= 0.1 #
 print(weighting)
 loss_function = nn.CrossEntropyLoss(weight=weighting)
 
 metrics = {
     "Accuracy":Accuracy(ignore_index=data_handler.category_pad_idx).to(device),
-    "F1":F1(ignore_index=data_handler.category_pad_idx,num_classes=data_handler.num_categories,average=None).to(device)
+    "F1":F1(ignore_index=data_handler.category_pad_idx,num_classes=data_handler.num_categories,average=None).to(device),
+    "Precision":Precision(ignore_index=data_handler.category_pad_idx,num_classes=data_handler.num_categories,average=None).to(device),
+    "Recall":Recall(ignore_index=data_handler.category_pad_idx,num_classes=data_handler.num_categories,average=None).to(device)
 }
 
 eval_metrics = evaluate(model,data_handler.val_iterator,loss_function,metrics)
@@ -64,8 +77,11 @@ training_progress = []
 
 for epoch in trange(1,config.Training.number_epochs+1,desc="Epochs"):
     start_time = time.time()
+
     train_metrics = train(model,data_handler.train_iterator,optimizer,loss_function,metrics)
     eval_metrics = evaluate(model,data_handler.val_iterator,loss_function,metrics)
+    #eval_metrics_train = evaluate(model,data_handler.train_iterator,loss_function,metrics,max_iterations=300)
+    #eval_metrics_test = evaluate(model,data_handler.test_iterator,loss_function,metrics)
 
     save_model(model,optimizer,epoch,train_metrics,eval_metrics,weighting,os.path.join(HOME_PATH,config.Data.model_store_path),config.Data.model_name)
 
@@ -93,5 +109,10 @@ for epoch in trange(1,config.Training.number_epochs+1,desc="Epochs"):
         f.write(str(prediction))
 
     print(f"\nEpoch {epoch}, epoch time: {elapsed}")
-    print(", ".join(f"Training {key}: {value}" for key,value in format_metrics(train_metrics,data_handler.category_field).items()))
-    print(", ".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,data_handler.category_field).items()))
+    print("\n".join(f"Training {key}: {value}" for key,value in format_metrics(train_metrics,data_handler.category_field).items()))
+    print("\n")
+    print("\n".join(f"Evaluation {key}: {value}" for key,value in format_metrics(eval_metrics,data_handler.category_field).items()))
+    #print("\n")
+    #print("\n".join(f"Evaluation train {key}: {value}" for key,value in format_metrics(eval_metrics_train,data_handler.category_field).items()))
+    #print("\n")
+    #print("\n".join(f"Evaluation test {key}: {value}" for key,value in format_metrics(eval_metrics_test,data_handler.category_field).items()))

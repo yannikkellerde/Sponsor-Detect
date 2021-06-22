@@ -1,0 +1,2 @@
+,Epoch,elapsed,train_loss,train_accuracy,valid_loss,valid_accuracy,train_F1_<pad>,train_F1_video,train_F1_sponsor,valid_F1_<pad>,valid_F1_video,valid_F1_sponsor
+0,1,00:05:26,0.656118631362915,0.923954427242279,0.6296089291572571,0.9537181258201599,,0.8383325338363647,0.10877350717782974,,0.9737159013748169,0.665762186050415

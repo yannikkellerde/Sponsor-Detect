@@ -53,11 +53,11 @@ model = model.to(DEVICE)
 metadata = load_model(os.path.join(HOME_PATH,config.Data.model_store_path,args.model_name,f"{args.model_name}_{args.model_num}.tar"),model)
 model.eval()
 
-for i in range(7,8):
-    annotated = get_prediction_combo(model,text_dic,category_dic,test_data.examples[i],device=DEVICE)
+for i in range(0,25):
+    annotated,probs = get_prediction_combo(model,text_dic,category_dic,test_data.examples[i],device=DEVICE)
 
     text,preds = zip(*annotated)
-    to_html(text,test_data.examples[i].category,preds,os.path.abspath(os.path.join(HOME_PATH,config.Frontend.results_location,"test_6.html")),
+    to_html(text,test_data.examples[i].category,preds,probs,os.path.abspath(os.path.join(HOME_PATH,config.Frontend.results_location,f"second_version/test_{i}.html")),
             os.path.join(HOME_PATH,config.Frontend.template_location),os.path.join(HOME_PATH,config.Frontend.css_location))
 
     with open("prediction_examples.txt","a") as f:

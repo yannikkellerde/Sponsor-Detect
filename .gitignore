@@ -4,6 +4,7 @@ data/*
 __pycache__
 deprecated.py
 .vector_cache
+lstms.pth/
 
 !data/merge_csv_files.py
 !data/train_val_test_split.py

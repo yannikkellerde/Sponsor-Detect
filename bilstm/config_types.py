@@ -9,10 +9,13 @@ class Model(NamedTuple):
     embedding_dim:int
     hidden_dim:int
     num_layers:int
+    forget_gate_to_one:bool
 
 class Training(NamedTuple):
     lr:float
     number_epochs:int
+    weight_decay:int
+    dropout:int
 
 class Data(NamedTuple):
     batch_size:int

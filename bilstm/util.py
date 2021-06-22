@@ -25,6 +25,14 @@ def lstm_weights_init(model):
         elif 'weight' in name:
             nn.init.xavier_normal_(param)
 
+def forget_gate_trick(lstm_layer,to=1.):
+    for names in lstm_layer._all_weights:
+        for name in filter(lambda n: "bias" in n,  names):
+            bias = getattr(lstm_layer, name)
+            n = bias.size(0)
+            start, end = n//4, n//2
+            bias.data[start:end].fill_(to)
+
 def sentence_from_indices(indices,vocab):
     return [vocab.itos[i] for i in indices]
 
@@ -54,11 +62,14 @@ def load_model(filepath:str,model:nn.Module,optimizer:torch.optim.Optimizer=None
     return checkpoint
 
 def format_metrics(metrics,category_field):
+    multivalued = ["F1","Precision","Recall"]
     out_metrics = {}
-    out_metrics["F1"] = {category_field.vocab.itos[i]:(value.item() if np.isnan(value.item()) else round(value.item(),4)) for i,value in enumerate(metrics["F1"])}
-    del out_metrics["F1"]["<pad>"]
+    for m in multivalued:
+        if m in metrics:
+            out_metrics[m] = {category_field.vocab.itos[i]:(value.item() if np.isnan(value.item()) else round(value.item(),4)) for i,value in enumerate(metrics[m])}
+            del out_metrics[m]["<pad>"]
     for key,value in metrics.items():
-        if key!="F1":
+        if key not in multivalued:
             if type(value) == torch.Tensor:
                 out_metrics[key] = round(value.item(),4)
             else:

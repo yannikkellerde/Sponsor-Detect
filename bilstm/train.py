@@ -60,7 +60,8 @@ def predict(model,vocab,text,device):
 def get_prediction_combo(model,text_vocab,category_vocab,example,device):
     preds = predict(model,text_vocab,example.text,device)
     categories = pred_to_category(preds,category_vocab)
+    probs = [torch.max(x).item() for x in preds]
     correct = [a==b for a,b in zip(categories,example.category)]
     out_list = list(zip(example.text,categories))
     print("Accuracy",sum(correct)/len(correct))
-    return out_list
+    return out_list,probs
