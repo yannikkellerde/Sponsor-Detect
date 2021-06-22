@@ -17,6 +17,10 @@ body{
     position: relative;
     padding:3px;
 }
+.sponsor{
+    font-weight: bold;
+}
+
 .red{
     color:red;
 }

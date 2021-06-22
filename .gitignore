@@ -1,5 +1,6 @@
 .vscode/
 data/*
+data/model_metadata/*
 *.egg-info
 __pycache__
 deprecated.py
@@ -8,3 +9,5 @@ lstms.pth/
 
 !data/merge_csv_files.py
 !data/train_val_test_split.py
+!data/model_metadata/
+!data/model_metadata/training_progress/
