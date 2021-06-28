@@ -1,11 +1,11 @@
 from tqdm import tqdm
 import torch
 
-def evaluate(model, iterator_easy, iterator_hard, optimizer, criterion , metrics, device):
+def evaluate(model, iterator, optimizer, criterion , metrics, device):
     model.eval()
     total_loss = torch.tensor([0.0])
     with torch.no_grad():
-        for images, labels in tqdm(iterator_easy,desc="eval_ez"):
+        for images, labels in tqdm(iterator,desc="eval"):
             images = images.to(device)
             labels = labels.to(device)
             predictions, pred2 = model(images)
@@ -15,32 +15,13 @@ def evaluate(model, iterator_easy, iterator_hard, optimizer, criterion , metrics
             
             total_loss += loss.cpu()
 
-        metric_total_ez = {}
+        metric_total = {}
         for key in metrics:
-            metric_total_ez[key] = metrics[key].compute()
+            metric_total[key] = metrics[key].compute()
             metrics[key].reset()
-        metric_total_ez["Loss"] = total_loss/len(iterator_easy)
+        metric_total["Loss"] = total_loss/len(iterator)
 
-        total_loss = torch.tensor([0.0])
-        for images, labels in tqdm(iterator_hard,desc="eval_hard"):
-            images = images.to(device)
-            labels = labels.to(device)
-            predictions, pred2 = model(images)
-
-            loss = criterion(predictions, labels)
-
-            for key in metrics:
-                metrics[key](pred2, labels)
-            
-            total_loss += loss.cpu()
-
-        metric_total_hard = {}
-        for key in metrics:
-            metric_total_hard[key] = metrics[key].compute()
-            metrics[key].reset()
-        metric_total_hard["Loss"] = total_loss/len(iterator_easy)
-
-    return metric_total_ez, metric_total_hard
+    return metric_total
 
 
 def train(model, iterator, optimizer, criterion, metrics, device):
