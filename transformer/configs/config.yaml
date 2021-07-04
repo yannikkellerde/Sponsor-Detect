@@ -1,17 +1,19 @@
 wandb_project: sponsor-detect
 do_train: True
 output_dir: results/transformer
-max_seq_len: 50
+max_seq_len: 30
 report_to: all
-task_name:
+task_name: 500ksamples_3_4_seq_len_30_b2
 model: distilbert-base-uncased
+debug: True
 train:
-  train_batchsize: 4
+  learning_rate: 5.0e-5
+  train_batchsize: 2
   eval_batchsize: 4
-  max_steps: 600
-  logging_steps: 10
-  eval_steps: 250
-  gradient_accumulation_steps: 4
+  max_steps: 2000
+  logging_steps: 50
+  eval_steps: 50
+  gradient_accumulation_steps: 1
   save_total_limit: 2
   amp: True
   epochs: 1
